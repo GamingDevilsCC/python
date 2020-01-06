@@ -15,7 +15,9 @@ def gameMenu(): #game
     global generateEnemies
     #track
     draw.rect(screen, BLACK, (0, 0, 1000, 700))
-    draw.rect(screen, WHITE, (0, 300, 1000, 100))
+    draw.rect(screen, WHITE, (0, 200, 1000, 100)) #top track
+    draw.rect(screen, WHITE, (0, 300, 1000, 100)) #middle track
+    draw.rect(screen, WHITE, (0, 400, 1000, 100)) #bottom track
     playerHealthBar()
     startButton() #to start the round and generate enemies
     
@@ -53,9 +55,9 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
     #electronic waste          
     for eWaste in range(len(eWasteX)): #how many e-waste enemies there are. nested loop because of enemyHealth requiring information from machine
         if eWasteStatus[eWaste] == 1: #checks to see if the enemy is alive.
-            draw.rect(screen, eWasteColor[eWaste], (eWasteX[eWaste], 325, 50, 50)) #screen, color, x, y, w, l
+            draw.rect(screen, eWasteColor[eWaste], (eWasteX[eWaste], eWasteY[eWaste], 50, 50)) #screen, color, (x, y, w, l)
             enemyHealthText = smallFont.render(str(eWasteHealth[eWaste]), 1, WHITE)
-            screen.blit(enemyHealthText, Rect(eWasteX[eWaste] + 5, 330, 0, 0)) #e-waste health text
+            screen.blit(enemyHealthText, Rect(eWasteX[eWaste] + 5, eWasteY[eWaste] + 5, 0, 0)) #e-waste health text
             eWasteX[eWaste] += eWasteSpeed[eWaste] #increase the x position of e-waste to the right by it's speed.
     
     
@@ -63,7 +65,7 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
     for machine in range(len(recyclerX)):
         for eWaste in range(len(eWasteX)):
             if eWasteStatus[eWaste] == 1: #checks to see if the enemy is alive.
-                if eWasteX[eWaste] == recyclerX[machine]: #if the e-waste colides with a recycler, the e-waste loses 10 health
+                if eWasteX[eWaste] == recyclerX[machine] and eWasteY[eWaste] == recyclerY[machine]: #if the e-waste colides with a recycler, the e-waste loses 10 health
                     eWasteHealth[eWaste] -= recyclerDamage[machine] #the damage the recycler does to the e-waste health
                     if eWasteHealth[eWaste] <= 0: #if the health of the e-waste is dead, delete it from list
                         eWasteStatus[eWaste] = 0 #it's not alive, so change it's status to dead
@@ -71,7 +73,7 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
                         print(greenCoins)
                         
                 #code saying if the enemy reaches the end of the path, reduce player health
-                elif eWasteX[eWaste] == 990: #if the e-waste the end of the path. it's 50 pixels wide, so 950 instead of 1000.
+                elif eWasteX[eWaste] == 990: #if the e-waste the end of the path.
                     playerHealth -= 10
                     eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive
                     #maybe simplify code above by changing health to 0 when it contacts edge?
@@ -85,12 +87,13 @@ def enemyTier1(roundNumber):
     
     #below are some attributes of the e-waste
     eWasteX.append(0)
+    eWasteY.append(random.choice([225, 325, 425])) #randomly chooses which lane the e-waste goes through
     eWasteHealth.append(100 + 2*roundNumber) #adding the roundNumber*2 to the health increases the difficulty factor each round.
     eWasteDamage.append(10)
     eWasteColor.append(BLUE)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(10)
-    eWasteSpeed.append(1) #how many units right does this move each iteration / frame
+    eWasteSpeed.append(1.5) #how many units right does this move each iteration / frame
 
 def enemyTier2(roundNumber):
     global eWasteX
@@ -100,6 +103,7 @@ def enemyTier2(roundNumber):
     global eWasteCoinDrop
     
     eWasteX.append(0)
+    eWasteY.append(random.choice([225, 325, 425]))
     eWasteHealth.append(125 + 3*roundNumber)
     eWasteDamage.append(15)
     eWasteColor.append(PURPLE)
@@ -115,28 +119,47 @@ def enemyTier3(roundNumber):
     global eWasteCoinDrop
     
     eWasteX.append(0)
+    eWasteY.append(random.choice([225, 325, 425]))
     eWasteHealth.append(150 + 4*roundNumber)
     eWasteDamage.append(25)
     eWasteColor.append(RED)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(30)
     eWasteSpeed.append(3)
+    
 
 #This is the function that finds where the user wants to place the recycler, and draws it.
 def recycler():
     global mx, my
     global recyclerX
     
-    if placeRecycler == True and 400 > my > 300: #These are temporary parameters for now while the game is being developed.
+    if placeRecycler == True and 400 > my > 300: #user placing recycler on middle track
         xPosition = recyclerPositionFactor(mx)
         recyclerX.append(xPosition)
+        recyclerY.append(325)
+        recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
+        mx = 0
+        my = 0
+    
+    elif placeRecycler == True and 300 > my > 200: #user placing recycler on top track
+        xPosition = recyclerPositionFactor(mx)
+        recyclerX.append(xPosition)
+        recyclerY.append(225)
+        recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
+        mx = 0
+        my = 0
+    
+    elif placeRecycler == True and 500 > my > 400: #user placing recycler on bottom track
+        xPosition = recyclerPositionFactor(mx)
+        recyclerX.append(xPosition)
+        recyclerY.append(425)
         recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
         mx = 0
         my = 0
     
     #draw the recycler
     for machine in range(len(recyclerX)): #how many recyclers there are.                    
-        draw.rect(screen, GREEN, (recyclerX[machine], 325, 50, 50)) #Only the x value is set. This way when a user places one down, it doesn't look out of place.
+        draw.rect(screen, GREEN, (recyclerX[machine], recyclerY[machine], 50, 50)) #screen, color, (x, y, w, l)
 
 #We use this as a seperate function to clear up code.
 def userEvents():
@@ -183,7 +206,7 @@ def roundOnGoing():
             onGoing = True
     return onGoing
 
-#checks if the position is a factor of 90 to prevent e-waste with a faster movement speed from skipping over it (as 90 has a factor of 2 and 3, the movespeed for tier 2 and tier 3 e-waste).
+#checks if the position is a factor of 90 to prevent e-waste with a faster movement speed from skipping over it (as 90 has a factor of 1.5, 2 and 3, the movespeed for tier 1, 2, and 3 e-waste).
 def recyclerPositionFactor(position): 
     if position % 90 == 0:
         return position
@@ -222,9 +245,11 @@ greenCoins = 0 #this is the currency / coin system
 score = 0
 
 recyclerX = [] #number of recyclers, and their x position.
+recyclerY = []
 recyclerDamage = [] #how much damage each recycler does to the health of the eWaste
 
-eWasteX = [] #initial x-position of the testing ewaste
+eWasteX = [] #x-position of the e-waste's
+eWasteY = [] #y-position
 eWasteHealth = [] #ewaste health
 eWasteDamage = [] #the damage the e-waste deals to player
 eWasteColor = []
