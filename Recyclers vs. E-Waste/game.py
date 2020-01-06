@@ -10,16 +10,42 @@ from pygame import*
 import os
 import random
 
+#this is under development. Once done, the user is able to see his score and other player's score, and add his score to the scoreboard.
+def scoreboardMenu():
+    global scoreboardList
+    numFile = open("scoreboard.dat", "r")
+    while True:
+        text = numFile.readline()
+        #rstrip removes the newline character read at the end of the line
+        text = text.rstrip("\n")
+        if text=="": 
+            break
+        text = text.split(",")
+        scoreboardList.append(text)
+    numFile.close()    
+    draw.rect(screen, BLACK, (0, 0, 1000, 700))
+    
+
 def gameMenu(): #game
     global roundStarted
     global generateEnemies
+    global greenCoins
     #track
     draw.rect(screen, BLACK, (0, 0, 1000, 700))
     draw.rect(screen, WHITE, (0, 200, 1000, 100)) #top track
     draw.rect(screen, WHITE, (0, 300, 1000, 100)) #middle track
     draw.rect(screen, WHITE, (0, 400, 1000, 100)) #bottom track
+    
+    #health
     playerHealthBar()
     startButton() #to start the round and generate enemies
+    
+    #coins
+    coinText = smallFont.render(str(greenCoins), 1, WHITE)
+    screen.blit(coinText, Rect(900, 30, 0, 0)) #player health text
+    
+    #buy recycler button
+    draw.rect(screen, GREEN, (450, 600, 100, 50))
     
     #the generate the e-waste and if the round has started, show the e-waste. Show recyclers regardless if round has started or not. 
     if generateEnemies:
@@ -36,6 +62,8 @@ def gameMenu(): #game
         if spawnTier3 == 1:
             enemyTier3(roundNumber)
         generateEnemies = False #set it to false right after generating enemies, so on the next loop it doesn't generate even more.
+        greenCoins += 10 #at the start of every round, give the player a 10 coin bonus.
+        print("10 coin bonus")
     
     if roundStarted:
         enemiesMoving()
@@ -60,7 +88,6 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
             screen.blit(enemyHealthText, Rect(eWasteX[eWaste] + 5, eWasteY[eWaste] + 5, 0, 0)) #e-waste health text
             eWasteX[eWaste] += eWasteSpeed[eWaste] #increase the x position of e-waste to the right by it's speed.
     
-    
     #Damage protocol, used for determining colision and ewaste/player health. If ewaste reaches the end or is out of health, it gets removed from the  
     for machine in range(len(recyclerX)):
         for eWaste in range(len(eWasteX)):
@@ -70,7 +97,6 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
                     if eWasteHealth[eWaste] <= 0: #if the health of the e-waste is dead, delete it from list
                         eWasteStatus[eWaste] = 0 #it's not alive, so change it's status to dead
                         greenCoins += eWasteCoinDrop[eWaste] #give the coins that it dropped
-                        print(greenCoins)
                         
                 #code saying if the enemy reaches the end of the path, reduce player health
                 elif eWasteX[eWaste] == 990: #if the e-waste the end of the path.
@@ -132,34 +158,63 @@ def enemyTier3(roundNumber):
 def recycler():
     global mx, my
     global recyclerX
+    global placeRecycler
+    global greenCoins
     
+    #checks if user presses buy button and if they have enough money to purchase it.
+    if 550 > mx > 450 and 650 > my > 600 and greenCoins >= 10:
+        placeRecycler = True
+    
+    xPosition = recyclerPositionFactor(mx)
+    
+    #places it in the lane the user wants it to be in a grid with 90 x 90 squares.
     if placeRecycler == True and 400 > my > 300: #user placing recycler on middle track
         xPosition = recyclerPositionFactor(mx)
-        recyclerX.append(xPosition)
-        recyclerY.append(325)
-        recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
-        mx = 0
-        my = 0
+        if recyclerPlacementCheck(xPosition, 325) == False:
+            recyclerX.append(xPosition)
+            recyclerY.append(325)
+            recyclerDamage.append(50) #this is level 1 damage that recycler does to e-waste
+            mx = 0
+            my = 0
+            placeRecycler = False
+            greenCoins -= 10
+        else: print("error: already placed, click another spot")
     
     elif placeRecycler == True and 300 > my > 200: #user placing recycler on top track
         xPosition = recyclerPositionFactor(mx)
-        recyclerX.append(xPosition)
-        recyclerY.append(225)
-        recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
-        mx = 0
-        my = 0
+        if recyclerPlacementCheck(xPosition, 225) == False:
+            recyclerX.append(xPosition)
+            recyclerY.append(225)
+            recyclerDamage.append(50) #this is level 1 damage that recycler does to e-waste
+            mx = 0
+            my = 0
+            placeRecycler = False
+            greenCoins -=10
+        else: print("error: already placed, click another spot")
     
     elif placeRecycler == True and 500 > my > 400: #user placing recycler on bottom track
         xPosition = recyclerPositionFactor(mx)
-        recyclerX.append(xPosition)
-        recyclerY.append(425)
-        recyclerDamage.append(10) #this is level 1 damage that recycler does to e-waste
-        mx = 0
-        my = 0
+        if recyclerPlacementCheck(xPosition, 425) == False:
+            recyclerX.append(xPosition)
+            recyclerY.append(425)
+            recyclerDamage.append(50) #this is level 1 damage that recycler does to e-waste
+            mx = 0
+            my = 0
+            placeRecycler = False
+            greenCoins -=10
+        else: print("error: already placed, click another spot")
     
     #draw the recycler
     for machine in range(len(recyclerX)): #how many recyclers there are.                    
         draw.rect(screen, GREEN, (recyclerX[machine], recyclerY[machine], 50, 50)) #screen, color, (x, y, w, l)
+
+#This function checks if there is already a recycler where the user is trying to place it.
+def recyclerPlacementCheck(mx, my):
+    alreadyPlaced = False
+    for machine in range(len(recyclerX)):
+        if recyclerX[machine] == mx and recyclerY[machine] == my:
+            alreadyPlaced = True
+    return alreadyPlaced
 
 #We use this as a seperate function to clear up code.
 def userEvents():
@@ -231,7 +286,7 @@ smallFont = font.SysFont("Arial", 18)
 running = True
 game = True #we haven't created a main menu yet, so set this to true for now.
 started = True
-placeRecycler = True #true for now, used for placing recycler
+placeRecycler = False #true for now, used for placing recycler
 roundStarted = False #if a round / wave / match is started.
 generateEnemies = False
 roundNumber = 0
@@ -241,7 +296,7 @@ mx = 0
 my = 0
 
 playerHealth = 100
-greenCoins = 0 #this is the currency / coin system
+greenCoins = 50 #this is the currency / coin system
 score = 0
 
 recyclerX = [] #number of recyclers, and their x position.
