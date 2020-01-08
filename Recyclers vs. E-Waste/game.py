@@ -23,22 +23,55 @@ def scoreboardMenu():
                 break
             text = text.split(",")
             scoreboardList.append(text)
-        numFile.close()    
+        numFile.close()
+        
+        addToScoreboard() #see if the user has a score in the top 10, then output.
+        
         draw.rect(screen, BLACK, (0, 0, 1000, 700))
         for record in range(len(scoreboardList)):
             for field in range(len(scoreboardList[record])):
                 displayText = smallFont.render(scoreboardList[record][field], 1, WHITE)
-                screen.blit(displayText, Rect(field * 50, record * 30, 500, 500))    
-        
+                screen.blit(displayText, Rect(field * 100, record * 30, 500, 500))
+#to do, display only the top 10 scores.
+
+#this function finds adds the users score in the appropriate place to the scoreboardList, so it can be displayed in the scoreboardMenu function.
+def addToScoreboard():
+    global scoreboardList
+    scoreAdded = False
+    
+    for player in scoreboardList:
+        if score > int(player[1]): #if the player's score is bigger then the other player's score. this works as it looks through the score of the highest players first.
+            #slice the list
+            usersPlace = scoreboardList.index(player)
+            scoreboardListTemp1 = scoreboardList[:usersPlace]
+            scoreboardListTemp2 = scoreboardList[usersPlace:]
+            #add score in between slice.
+            scoreboardList = scoreboardListTemp1 + [[playerName, str(score)]] + scoreboardListTemp2
+            scoreAdded = True
+            break
+    #if his score is not bigger than any score, add it to the end.
+    if scoreAdded == False:
+        scoreboardList.append([playerName, str(score)]) #score must be a string, otherwise: builtins.TypeError: text must be a unicode or bytes
+    #print(scoreboardList)
+
+
 def mainMenu(): #main menu
     global mx, my
     global menu
     global game
     draw.rect(screen, BLACK, (0, 0, 100, 700))
     draw.rect(screen, BLUE, (450, 375, 100, 50))
+    
+    #playername
+    draw.rect(screen, WHITE, (30, 30, 250, 40))
+    nameText = smallFont.render(playerName, 1, BLACK)
+    screen.blit(nameText, Rect(35, 35, 500, 500))    
+    
     if 550 > mx > 450 and 425 > my > 375:
         game = True
         menu = False
+        #print(playerName)
+    
 
 def gameMenu(): #game
     global roundStarted
@@ -46,10 +79,14 @@ def gameMenu(): #game
     global greenCoins
     global game
     global scoreboard
+    global score
     
     if playerHealth <= 0:
         game = False
         scoreboard = True
+        
+    score = roundNumber * 10
+    
     #track
     draw.rect(screen, BLACK, (0, 0, 1000, 700))
     draw.rect(screen, WHITE, (0, 200, 1000, 100)) #top track
@@ -106,10 +143,10 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
             screen.blit(enemyHealthText, Rect(eWasteX[eWaste] + 5, eWasteY[eWaste] + 5, 0, 0)) #e-waste health text
             eWasteX[eWaste] += eWasteSpeed[eWaste] #increase the x position of e-waste to the right by it's speed.
 
-        #code saying if the enemy reaches the end of the path, reduce player health
-        if eWasteX[eWaste] == 990: #if the e-waste the end of the path.
-            playerHealth -= 10
-            eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive        
+            #code saying if the enemy reaches the end of the path, reduce player health
+            if eWasteX[eWaste] == 990: #if the e-waste the end of the path.
+                playerHealth -= 10
+                eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive        
     
     #Damage protocol, used for determining colision and ewaste/player health. If ewaste reaches the end or is out of health, it gets removed from the  
     for machine in range(len(recyclerX)):
@@ -223,10 +260,15 @@ def recyclerPlacementCheck(mx, my):
 #We use this as a seperate function to clear up code.
 def userEvents():
     global mx, my
+    global playerName
     #if the user does not drags the window do the lines of code below
     for evnt in event.get():
         if evnt.type == MOUSEBUTTONDOWN:
             mx, my = evnt.pos
+        if menu == True and evnt.type == KEYDOWN: #when the user is entering his name in the main menu.
+            if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
+                    playerName = playerName[:-1]
+            else: playerName += evnt.unicode
 
 #This is the player's health bar that is displayed on the screen
 def playerHealthBar():
@@ -318,6 +360,8 @@ eWasteCoinDrop = []
 eWasteSpeed = []
 
 scoreboardList = []
+
+playerName = ""
 
 #entire loop
 while running:
