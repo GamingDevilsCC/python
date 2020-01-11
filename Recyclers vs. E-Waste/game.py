@@ -32,6 +32,12 @@ def scoreboardMenu():
             for field in range(len(scoreboardList[record])):
                 displayText = smallFont.render(scoreboardList[record][field], 1, WHITE)
                 screen.blit(displayText, Rect(field * 100, record * 30, 500, 500))
+                
+        numFile = open("scoreboard.dat", "w")
+        for record in scoreboardList:
+            writeLine = "%s,%s\n" % (record[0], record[1])
+            numFile.write(writeLine)
+        numFile.close()
 #to do, display only the top 10 scores.
 
 #this function finds adds the users score in the appropriate place to the scoreboardList, so it can be displayed in the scoreboardMenu function.
@@ -52,7 +58,6 @@ def addToScoreboard():
     #if his score is not bigger than any score, add it to the end.
     if scoreAdded == False:
         scoreboardList.append([playerName, str(score)]) #score must be a string, otherwise: builtins.TypeError: text must be a unicode or bytes
-    #print(scoreboardList)
 
 
 def mainMenu(): #main menu
@@ -101,8 +106,9 @@ def gameMenu(): #game
     coinText = smallFont.render(str(greenCoins), 1, WHITE)
     screen.blit(coinText, Rect(900, 30, 0, 0)) #player health text
     
-    #buy recycler button
+    #buy and sell recycler button
     draw.rect(screen, GREEN, (450, 600, 100, 50))
+    draw.rect(screen, RED, (650, 600, 100, 50))
     
     #the generate the e-waste and if the round has started, show the e-waste. Show recyclers regardless if round has started or not. 
     if generateEnemies:
@@ -151,7 +157,7 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
     #Damage protocol, used for determining colision and ewaste/player health. If ewaste reaches the end or is out of health, it gets removed from the  
     for machine in range(len(recyclerX)):
         for eWaste in range(len(eWasteX)):
-            if eWasteStatus[eWaste] == 1: #checks to see if the enemy is alive.
+            if eWasteStatus[eWaste] == 1 and recyclerStatus[machine] == 1: #checks to see if the enemy is alive.
                 if eWasteX[eWaste] == recyclerX[machine] and eWasteY[eWaste] == recyclerY[machine]: #if the e-waste colides with a recycler, the e-waste loses 10 health
                     eWasteHealth[eWaste] -= recyclerDamage[machine] #the damage the recycler does to the e-waste health
                     if eWasteHealth[eWaste] <= 0: #if the health of the e-waste is dead, delete it from list
@@ -213,15 +219,32 @@ def recycler():
     global mx, my
     global recyclerX
     global placeRecycler
+    global sellRecycler
     global greenCoins
+    global indexForRecyclerPlacementCheck
     
     #checks if user presses buy button and if they have enough money to purchase it.
     if 550 > mx > 450 and 650 > my > 600 and greenCoins >= 10:
         placeRecycler = True
+    elif 750 > mx > 650  and 650 > my > 600 and placeRecycler == False: #placeRecycler must be false otherwise the user deletes the recycler right after they placed it. 
+        sellRecycler = True
+    xPosition = recyclerPositionFactor(mx) #this makes the placement of the recyclers follow a grid that's spaced by 90 pixels. Based off where the user clicks.
+    xPositionHover = recyclerPositionFactor(hoverX) #this is when the user is hovering over where he wants to place it, but hasn't clicked it.
     
-    xPosition = recyclerPositionFactor(mx) #this makes the placement of the recyclers follow a grid that's spaced by 90 pixels.
     if placeRecycler == True:
         #place it in the lane the user wants it to be in, following the invisible grid.
+        
+        #when the user is hovering the mouse, show a preview of where it'll be
+        if 400 > hoverY > 300: #preview recycler on middle track
+            draw.rect(screen, GREEN, (xPositionHover, 325, 50, 50)) #screen, color, (x, y, w, l)
+        
+        elif 300 > hoverY > 200: #...top track
+            draw.rect(screen, GREEN, (xPositionHover, 225, 50, 50)) #screen, color, (x, y, w, l)
+        
+        elif 500 > hoverY > 400: #or bottom track
+            draw.rect(screen, GREEN, (xPositionHover, 425, 50, 50)) #screen, color, (x, y, w, l)      
+        
+        #when the user clicks, place the recycler.
         if 400 > my > 300: #user placing recycler on middle track
             placingRecycler(xPosition, 325)
         
@@ -230,10 +253,30 @@ def recycler():
         
         elif 500 > my > 400: #user placing recycler on bottom track
             placingRecycler(xPosition, 425)
-    
+            
+    elif sellRecycler == True:
+        if 400 > my > 300: #middle track
+            if recyclerPlacementCheck(xPosition, 325) == True:
+                recyclerStatus[indexForRecyclerPlacementCheck] = 0
+                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
+                sellRecycler = False
+                
+        elif 300 > my > 200: #top track
+            if recyclerPlacementCheck(xPosition, 225) == True:
+                recyclerStatus[indexForRecyclerPlacementCheck] = 0
+                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
+                sellRecycler = False
+        
+        elif 500 > my > 400: #bottom track
+            if recyclerPlacementCheck(xPosition, 425) == True:
+                recyclerStatus[indexForRecyclerPlacementCheck] = 0
+                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
+                sellRecycler = False
+                
     #draw the recycler
-    for machine in range(len(recyclerX)): #how many recyclers there are.                    
-        draw.rect(screen, GREEN, (recyclerX[machine], recyclerY[machine], 50, 50)) #screen, color, (x, y, w, l)
+    for machine in range(len(recyclerX)): #how many recyclers there are.
+        if recyclerStatus[machine] == 1: #if the recycler is not sold
+            draw.rect(screen, GREEN, (recyclerX[machine], recyclerY[machine], 50, 50)) #screen, color, (x, y, w, l)
 
 #this function places the recyclers onto the map if there isn't one already placed in the desired location
 def placingRecycler(xPosition, yLane):
@@ -243,6 +286,8 @@ def placingRecycler(xPosition, yLane):
         recyclerX.append(xPosition)
         recyclerY.append(yLane)
         recyclerDamage.append(50) #this is level 1 damage that recycler does to e-waste
+        recyclerStatus.append(1) #the recycler has not been sold yet.
+        recyclerSellPrice.append(5) #the price that the user can sell the recycler at
         mx = 0
         my = 0
         placeRecycler = False
@@ -251,20 +296,25 @@ def placingRecycler(xPosition, yLane):
 
 #This function checks if there is already a recycler where the user is trying to place it.
 def recyclerPlacementCheck(mx, my):
+    global indexForRecyclerPlacementCheck #this is used so we can know what number 'machine' lands on to make the condition true. This will be used for deleting recycler.
     alreadyPlaced = False
     for machine in range(len(recyclerX)):
-        if recyclerX[machine] == mx and recyclerY[machine] == my:
+        if recyclerX[machine] == mx and recyclerY[machine] == my and recyclerStatus[machine] == 1:
+            indexForRecyclerPlacementCheck = machine
             alreadyPlaced = True
     return alreadyPlaced
 
 #We use this as a seperate function to clear up code.
 def userEvents():
     global mx, my
+    global hoverX, hoverY
     global playerName
     #if the user does not drags the window do the lines of code below
     for evnt in event.get():
         if evnt.type == MOUSEBUTTONDOWN:
             mx, my = evnt.pos
+        if evnt.type == MOUSEMOTION:
+            hoverX, hoverY = evnt.pos
         if menu == True and evnt.type == KEYDOWN: #when the user is entering his name in the main menu.
             if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
                     playerName = playerName[:-1]
@@ -333,7 +383,8 @@ game = False #we haven't created a main menu yet, so set this to true for now.
 menu = True
 scoreboard = False
 started = True
-placeRecycler = False #true for now, used for placing recycler
+placeRecycler = False #used for placing recycler
+sellRecycler = False
 roundStarted = False #if a round / wave / match is started.
 generateEnemies = False
 roundNumber = 0
@@ -341,14 +392,18 @@ roundNumber = 0
 #global mouse x and y position
 mx = 0
 my = 0
-
-playerHealth = 10
+hoverX = 0
+hoverY = 0
+indexForRecyclerPlacementCheck = -1
+playerHealth = 100
 greenCoins = 50 #this is the currency / coin system
 score = 0
 
 recyclerX = [] #number of recyclers, and their x position.
 recyclerY = []
 recyclerDamage = [] #how much damage each recycler does to the health of the eWaste
+recyclerStatus = [] #0 if sold, 1 if not sold.
+recyclerSellPrice = []
 
 eWasteX = [] #x-position of the e-waste's
 eWasteY = [] #y-position
