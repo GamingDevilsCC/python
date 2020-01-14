@@ -28,6 +28,7 @@ def scoreboardMenu():
         addToScoreboard() #see if the user has a score in the top 10, then output.
         
         draw.rect(screen, BLACK, (0, 0, 1000, 700))
+        draw.rect(screen, RED, (850, 50, 100, 50)) #exit button. activation of the exit button is seen in the userEvents() function
         for record in range(len(scoreboardList)):
             for field in range(len(scoreboardList[record])):
                 displayText = smallFont.render(scoreboardList[record][field], 1, WHITE)
@@ -44,7 +45,6 @@ def scoreboardMenu():
 def addToScoreboard():
     global scoreboardList
     scoreAdded = False
-    
     for player in scoreboardList:
         if score > int(player[1]): #if the player's score is bigger then the other player's score. this works as it looks through the score of the highest players first.
             #slice the list
@@ -55,27 +55,27 @@ def addToScoreboard():
             scoreboardList = scoreboardListTemp1 + [[playerName, str(score)]] + scoreboardListTemp2
             scoreAdded = True
             break
-    #if his score is not bigger than any score, add it to the end.
+        
+    #if his score is not bigger than any score, add it to the end / last.
     if scoreAdded == False:
         scoreboardList.append([playerName, str(score)]) #score must be a string, otherwise: builtins.TypeError: text must be a unicode or bytes
 
-
-def mainMenu(): #main menu
+#main menu
+def mainMenu():
     global mx, my
     global menu
     global game
-    draw.rect(screen, BLACK, (0, 0, 100, 700))
-    draw.rect(screen, BLUE, (450, 375, 100, 50))
+    screen.blit(menuPic, Rect(0, 0, 1000, 700))
+    draw.rect(screen, RED, (450, 375, 100, 50))
     
-    #playername
-    draw.rect(screen, WHITE, (30, 30, 250, 40))
-    nameText = smallFont.render(playerName, 1, BLACK)
-    screen.blit(nameText, Rect(35, 35, 500, 500))    
+    #player's name textbox. the user inputs their name through userEvents()
+    draw.rect(screen, WHITE, (300, 225, 400, 75)) #this box can only fit a maximum of 18 characters
+    nameText = largeFont.render(playerName, 1, BLACK)
+    screen.blit(nameText, Rect(315, 240, 500, 500))    
     
     if 550 > mx > 450 and 425 > my > 375:
         game = True
         menu = False
-        #print(playerName)
     
 
 def gameMenu(): #game
@@ -93,10 +93,10 @@ def gameMenu(): #game
     score = roundNumber * 10
     
     #track
-    draw.rect(screen, BLACK, (0, 0, 1000, 700))
-    draw.rect(screen, WHITE, (0, 200, 1000, 100)) #top track
-    draw.rect(screen, WHITE, (0, 300, 1000, 100)) #middle track
-    draw.rect(screen, WHITE, (0, 400, 1000, 100)) #bottom track
+    screen.blit(floorPic, (0, 0, 1000, 700)) #floor
+    screen.blit(pathPic, (0, 200, 1000, 100)) #top track
+    screen.blit(pathPic, (0, 300, 1000, 100)) #middle track
+    screen.blit(pathPic, (0, 400, 1000, 100)) #bottom track
     
     #health
     playerHealthBar()
@@ -174,8 +174,8 @@ def enemyTier1(roundNumber):
     #below are some attributes of the e-waste
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425])) #randomly chooses which lane the e-waste goes through
-    eWasteHealth.append(100 + 2*roundNumber) #adding the roundNumber*2 to the health increases the difficulty factor each round.
-    eWasteDamage.append(10)
+    eWasteHealth.append(100 + 2*(roundNumber - 1)) #adding the roundNumber*2 to the health increases the difficulty factor each round, aka first round is 100 health, while 11th round is 120 health
+    eWasteDamage.append(15)
     eWasteColor.append(BLUE)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(10)
@@ -190,8 +190,8 @@ def enemyTier2(roundNumber):
     
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425]))
-    eWasteHealth.append(125 + 3*roundNumber)
-    eWasteDamage.append(15)
+    eWasteHealth.append(125 + 3*(roundNumber - 1))
+    eWasteDamage.append(30)
     eWasteColor.append(PURPLE)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(20)
@@ -206,15 +206,15 @@ def enemyTier3(roundNumber):
     
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425]))
-    eWasteHealth.append(150 + 4*roundNumber)
-    eWasteDamage.append(25)
+    eWasteHealth.append(150 + 4*(roundNumber - 1))
+    eWasteDamage.append(40)
     eWasteColor.append(RED)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(30)
     eWasteSpeed.append(3)
     
 
-#This is the function that finds where the user wants to place the recycler, and draws it.
+#This is the function that previews where the user wants to place the recycler, and draws it once placed. Otherwise, the user can sell the recycler.
 def recycler():
     global mx, my
     global recyclerX
@@ -231,7 +231,7 @@ def recycler():
     xPosition = recyclerPositionFactor(mx) #this makes the placement of the recyclers follow a grid that's spaced by 90 pixels. Based off where the user clicks.
     xPositionHover = recyclerPositionFactor(hoverX) #this is when the user is hovering over where he wants to place it, but hasn't clicked it.
     
-    if placeRecycler == True:
+    if placeRecycler == True: #if the user wants to buy a recycler
         #place it in the lane the user wants it to be in, following the invisible grid.
         
         #when the user is hovering the mouse, show a preview of where it'll be
@@ -254,7 +254,7 @@ def recycler():
         elif 500 > my > 400: #user placing recycler on bottom track
             placingRecycler(xPosition, 425)
             
-    elif sellRecycler == True:
+    elif sellRecycler == True: #if the user wants to sell the recycler
         if 400 > my > 300: #middle track
             if recyclerPlacementCheck(xPosition, 325) == True:
                 recyclerStatus[indexForRecyclerPlacementCheck] = 0
@@ -273,11 +273,11 @@ def recycler():
                 greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
                 sellRecycler = False
                 
-    #draw the recycler
+    #draw the recyclers
     for machine in range(len(recyclerX)): #how many recyclers there are.
         if recyclerStatus[machine] == 1: #if the recycler is not sold
-            draw.rect(screen, GREEN, (recyclerX[machine], recyclerY[machine], 50, 50)) #screen, color, (x, y, w, l)
-
+            screen.blit(recyclerPic, Rect(recyclerX[machine], recyclerY[machine], 50, 50))
+            
 #this function places the recyclers onto the map if there isn't one already placed in the desired location
 def placingRecycler(xPosition, yLane):
     global placeRecycler
@@ -308,7 +308,8 @@ def recyclerPlacementCheck(mx, my):
 def userEvents():
     global mx, my
     global hoverX, hoverY
-    global playerName
+    global playerName, scoreboardList
+    global menu, scoreboard
     #if the user does not drags the window do the lines of code below
     for evnt in event.get():
         if evnt.type == MOUSEBUTTONDOWN:
@@ -318,7 +319,12 @@ def userEvents():
         if menu == True and evnt.type == KEYDOWN: #when the user is entering his name in the main menu.
             if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
                     playerName = playerName[:-1]
-            else: playerName += evnt.unicode
+            elif len(playerName) < 18: playerName += evnt.unicode #maximum 18 characters can be fit on the textbox, so don't let them add more than 18.
+        if scoreboard == True and 950 > mx > 850 and 100 > my > 50:
+            menu = True
+            scoreboard = False
+            scoreboardList = [] #reset the scoreboardList's length to 0. Otherwise, when scoreboardMenu() is called, if won't display a scoreboard as it's dependant on it's length being 0.
+            playerName = "" #resets the playerName to "", otherwise when the user goes to the main menu from scoreboard menu he will see his previously typed name.
 
 #This is the player's health bar that is displayed on the screen
 def playerHealthBar():
@@ -377,7 +383,15 @@ BLUE = (0, 0, 255)
 PURPLE = (128, 0, 128)
 myClock = time.Clock()
 smallFont = font.SysFont("Arial", 18)
+largeFont = font.SysFont("Arial", 36)
 
+#visuals
+menuPic = image.load("images\\menu.png").convert_alpha()
+pathPic = image.load("images\\path.png").convert_alpha()
+floorPic = image.load("images\\floor.png").convert()
+recyclerPic = image.load("images\\recycling.jpg").convert()
+
+#states and initializing conditions
 running = True
 game = False #we haven't created a main menu yet, so set this to true for now.
 menu = True
@@ -395,16 +409,18 @@ my = 0
 hoverX = 0
 hoverY = 0
 indexForRecyclerPlacementCheck = -1
-playerHealth = 100
+playerHealth = 10
 greenCoins = 50 #this is the currency / coin system
 score = 0
 
+#recycler's attributes
 recyclerX = [] #number of recyclers, and their x position.
 recyclerY = []
 recyclerDamage = [] #how much damage each recycler does to the health of the eWaste
 recyclerStatus = [] #0 if sold, 1 if not sold.
 recyclerSellPrice = []
 
+#e-waste's attributes
 eWasteX = [] #x-position of the e-waste's
 eWasteY = [] #y-position
 eWasteHealth = [] #ewaste health
