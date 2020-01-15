@@ -31,12 +31,12 @@ def scoreboardMenu():
         draw.rect(screen, RED, (850, 50, 100, 50)) #exit button. activation of the exit button is seen in the userEvents() function
         for record in range(len(scoreboardList)):
             for field in range(len(scoreboardList[record])):
-                displayText = smallFont.render(scoreboardList[record][field], 1, WHITE)
-                screen.blit(displayText, Rect(field * 100, record * 30, 500, 500))
+                displayText = largeFont.render(scoreboardList[record][field], 1, WHITE)
+                screen.blit(displayText, Rect(field * 350, record * 50, 500, 500))
                 
         numFile = open("scoreboard.dat", "w")
         for record in scoreboardList:
-            writeLine = "%s,%s\n" % (record[0], record[1])
+            writeLine = "%s,%s\n" % (record[0], record[1]) #playerName, score
             numFile.write(writeLine)
         numFile.close()
 #to do, display only the top 10 scores.
@@ -66,14 +66,19 @@ def mainMenu():
     global menu
     global game
     screen.blit(menuPic, Rect(0, 0, 1000, 700))
-    draw.rect(screen, RED, (450, 375, 100, 50))
+    screen.blit(titlePic, Rect(50, 10, 900, 160))
+    draw.rect(screen, RED, (375, 350, 250, 80))
     
     #player's name textbox. the user inputs their name through userEvents()
     draw.rect(screen, WHITE, (300, 225, 400, 75)) #this box can only fit a maximum of 18 characters
     nameText = largeFont.render(playerName, 1, BLACK)
-    screen.blit(nameText, Rect(315, 240, 500, 500))    
+    screen.blit(nameText, Rect(315, 245, 500, 500))
     
-    if 550 > mx > 450 and 425 > my > 375:
+    guidingText = smallFont.render("Enter your name in the box and press start to play!", 1, BLACK)
+    screen.blit(guidingText, Rect(325, 225, 500, 500))    
+    
+    #if the user clicks the Play Game button, start the game.
+    if 625 > mx > 375 and 430 > my > 350:
         game = True
         menu = False
     
@@ -132,8 +137,6 @@ def gameMenu(): #game
         enemiesMoving()
     recycler()
     
-    #userEvents()
-    
 #animation for the e-waste moving through the screen.
 def enemiesMoving(): #will have feature to randomly select different levels of enemies soon.
     global playerHealth
@@ -151,7 +154,7 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
 
             #code saying if the enemy reaches the end of the path, reduce player health
             if eWasteX[eWaste] == 990: #if the e-waste the end of the path.
-                playerHealth -= 10
+                playerHealth -= eWasteDamage[eWaste] #damages the player.
                 eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive        
     
     #Damage protocol, used for determining colision and ewaste/player health. If ewaste reaches the end or is out of health, it gets removed from the  
@@ -319,12 +322,14 @@ def userEvents():
         if menu == True and evnt.type == KEYDOWN: #when the user is entering his name in the main menu.
             if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
                     playerName = playerName[:-1]
-            elif len(playerName) < 18: playerName += evnt.unicode #maximum 18 characters can be fit on the textbox, so don't let them add more than 18.
+            elif len(playerName) < 18 and key.name(evnt.key) != "return": playerName += evnt.unicode #maximum 18 characters can be fit on the textbox, so don't let them add more than 18.
         if scoreboard == True and 950 > mx > 850 and 100 > my > 50:
             menu = True
             scoreboard = False
             scoreboardList = [] #reset the scoreboardList's length to 0. Otherwise, when scoreboardMenu() is called, if won't display a scoreboard as it's dependant on it's length being 0.
             playerName = "" #resets the playerName to "", otherwise when the user goes to the main menu from scoreboard menu he will see his previously typed name.
+            playerHealth = 100 #reset the player health back to 100
+            roundNumber = 0
 
 #This is the player's health bar that is displayed on the screen
 def playerHealthBar():
@@ -387,6 +392,7 @@ largeFont = font.SysFont("Arial", 36)
 
 #visuals
 menuPic = image.load("images\\menu.png").convert_alpha()
+titlePic = image.load("images\\title.png").convert()
 pathPic = image.load("images\\path.png").convert_alpha()
 floorPic = image.load("images\\floor.png").convert()
 recyclerPic = image.load("images\\recycling.jpg").convert()
@@ -409,7 +415,7 @@ my = 0
 hoverX = 0
 hoverY = 0
 indexForRecyclerPlacementCheck = -1
-playerHealth = 10
+playerHealth = 100
 greenCoins = 50 #this is the currency / coin system
 score = 0
 
@@ -447,3 +453,4 @@ while running:
     myClock.tick(60)
     display.flip()
 quit()
+
