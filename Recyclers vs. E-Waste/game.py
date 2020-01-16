@@ -25,20 +25,32 @@ def scoreboardMenu():
             scoreboardList.append(text)
         numFile.close()
         
-        addToScoreboard() #see if the user has a score in the top 10, then output.
+        addToScoreboard() #place the user's score in the appropriate place
         
-        draw.rect(screen, BLACK, (0, 0, 1000, 700))
-        draw.rect(screen, RED, (850, 50, 100, 50)) #exit button. activation of the exit button is seen in the userEvents() function
-        for record in range(len(scoreboardList)):
-            for field in range(len(scoreboardList[record])):
-                displayText = largeFont.render(scoreboardList[record][field], 1, WHITE)
-                screen.blit(displayText, Rect(field * 350, record * 50, 500, 500))
-                
         numFile = open("scoreboard.dat", "w")
         for record in scoreboardList:
             writeLine = "%s,%s\n" % (record[0], record[1]) #playerName, score
             numFile.write(writeLine)
         numFile.close()
+        
+        #limit the list to show only the top 10 scores.
+        if len(scoreboardList) > 10:
+            scoreboardList = scoreboardList[:10] #indexes from 0 to 9, the top 10 scores        
+        
+        #format the numbers to be right adjacent (but with 0's instead of spaces)
+        for row in scoreboardList:
+            if len(row[1]) == 1:
+                row[1] = "00%s" % row[1]
+            elif len(row[1]) == 2:
+                row[1] = "0%s" % row[1]
+        screen.blit(scoreboardPic, Rect(0, 0, 1000, 700))
+        draw.rect(screen, RED, (850, 20, 100, 50)) #exit button. activation of the exit button is seen in the userEvents() function
+        for record in range(len(scoreboardList)):
+            for field in range(len(scoreboardList[record])):
+                displayText = largeFont.render(scoreboardList[record][field], 1, BLACK)
+                screen.blit(displayText, Rect(60 + field * 350, 100 + record * 60, 500, 500))
+                
+
 #to do, display only the top 10 scores.
 
 #this function finds adds the users score in the appropriate place to the scoreboardList, so it can be displayed in the scoreboardMenu function.
@@ -103,13 +115,17 @@ def gameMenu(): #game
     screen.blit(pathPic, (0, 300, 1000, 100)) #middle track
     screen.blit(pathPic, (0, 400, 1000, 100)) #bottom track
     
+    #top bar
+    draw.rect(screen, BLUE, (0, 0, 1000, 90))
     #health
     playerHealthBar()
     startButton() #to start the round and generate enemies
-    
     #coins
-    coinText = smallFont.render(str(greenCoins), 1, WHITE)
-    screen.blit(coinText, Rect(900, 30, 0, 0)) #player health text
+    coinText = smallFont.render("Coins: %i" %greenCoins, 1, WHITE)
+    screen.blit(coinText, Rect(900, 30, 0, 0)) #displays coin
+    #score
+    scoreText = smallFont.render("Score: %i" %score, 1, WHITE)
+    screen.blit(scoreText, Rect(800, 30, 0, 0)) #player health text    
     
     #buy and sell recycler button
     draw.rect(screen, GREEN, (450, 600, 100, 50))
@@ -323,7 +339,7 @@ def userEvents():
             if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
                     playerName = playerName[:-1]
             elif len(playerName) < 18 and key.name(evnt.key) != "return": playerName += evnt.unicode #maximum 18 characters can be fit on the textbox, so don't let them add more than 18.
-        if scoreboard == True and 950 > mx > 850 and 100 > my > 50:
+        if scoreboard == True and 950 > mx > 850 and 70 > my > 20:
             menu = True
             scoreboard = False
             scoreboardList = [] #reset the scoreboardList's length to 0. Otherwise, when scoreboardMenu() is called, if won't display a scoreboard as it's dependant on it's length being 0.
@@ -333,6 +349,7 @@ def userEvents():
 
 #This is the player's health bar that is displayed on the screen
 def playerHealthBar():
+    draw.rect(screen, RED, (400, 25, 200, 30))
     draw.rect(screen, GREEN, (400, 25, 2 * playerHealth, 30))
     playerHealthText = smallFont.render(str(playerHealth), 1, WHITE)
     screen.blit(playerHealthText, Rect(405, 30, 0, 0)) #player health text   
@@ -396,6 +413,7 @@ titlePic = image.load("images\\title.png").convert()
 pathPic = image.load("images\\path.png").convert_alpha()
 floorPic = image.load("images\\floor.png").convert()
 recyclerPic = image.load("images\\recycling.jpg").convert()
+scoreboardPic = image.load("images\\scoreboard.png").convert()
 
 #states and initializing conditions
 running = True
@@ -453,4 +471,3 @@ while running:
     myClock.tick(60)
     display.flip()
 quit()
-
