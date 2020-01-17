@@ -10,7 +10,12 @@ from pygame import*
 import os
 import random
 
-#this is under development, but is only visible once the user dies. Once done, the user is able to see his score and other player's score, and add his score to the scoreboard.
+#unfinished
+def tutorialMenu():
+    draw.rect(screen, BLACK, (0, 0, 1000, 700))
+    tutorialText = "Welcome, %s! To play this game, place a recycler on area of the lanes. If there is a recycler already there, place it somewhere else. " %playerName
+
+#only visible once the user dies. The user is able to see his score and other player's score, and add his score to the scoreboard.
 def scoreboardMenu():
     global scoreboardList
     numFile = open("scoreboard.dat", "r")
@@ -101,7 +106,7 @@ def gameMenu(): #game
     global greenCoins
     global game
     global scoreboard
-    global score
+    global score, status
     
     if playerHealth <= 0:
         game = False
@@ -119,17 +124,24 @@ def gameMenu(): #game
     draw.rect(screen, BLUE, (0, 0, 1000, 90))
     #health
     playerHealthBar()
-    startButton() #to start the round and generate enemies
     #coins
     coinText = smallFont.render("Coins: %i" %greenCoins, 1, WHITE)
     screen.blit(coinText, Rect(900, 30, 0, 0)) #displays coin
     #score
     scoreText = smallFont.render("Score: %i" %score, 1, WHITE)
-    screen.blit(scoreText, Rect(800, 30, 0, 0)) #player health text    
+    screen.blit(scoreText, Rect(800, 30, 0, 0)) #player health text
+    #round number
+    roundText = smallFont.render("Round %i" %roundNumber, 1, WHITE)
+    screen.blit(roundText, Rect(700, 30, 0, 0)) #round number text
+    #status
+    statusText = smallFont.render("Message: %s" %status, 1, WHITE)
+    screen.blit(statusText, Rect(10, 30, 0, 0))
     
-    #buy and sell recycler button
+    #buy and sell recycler, and start round buttons
     draw.rect(screen, GREEN, (450, 600, 100, 50))
     draw.rect(screen, RED, (650, 600, 100, 50))
+    startButton() #to start the round and generate enemies
+    
     
     #the generate the e-waste and if the round has started, show the e-waste. Show recyclers regardless if round has started or not. 
     if generateEnemies:
@@ -147,10 +159,12 @@ def gameMenu(): #game
             enemyTier3(roundNumber)
         generateEnemies = False #set it to false right after generating enemies, so on the next loop it doesn't generate even more.
         greenCoins += 10 #at the start of every round, give the player a 10 coin bonus.
-        print("10 coin bonus")
+        status = "10 coin new round bonus."
     
     if roundStarted:
         enemiesMoving()
+    #elif roundStarted != True: #the button is only visible when the round has not started yet
+        
     recycler()
     
 #animation for the e-waste moving through the screen.
@@ -163,7 +177,8 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
     #electronic waste          
     for eWaste in range(len(eWasteX)): #how many e-waste enemies there are. nested loop because of enemyHealth requiring information from machine
         if eWasteStatus[eWaste] == 1: #checks to see if the enemy is alive.
-            draw.rect(screen, eWasteColor[eWaste], (eWasteX[eWaste], eWasteY[eWaste], 50, 50)) #screen, color, (x, y, w, l)
+            screen.blit(eWastePic[eWaste], Rect(eWasteX[eWaste], eWasteY[eWaste], 50, 50))
+            draw.rect(screen, eWasteColor[eWaste], (eWasteX[eWaste], eWasteY[eWaste] + 5, 35, 20)) #screen, color, (x, y, w, l)
             enemyHealthText = smallFont.render(str(eWasteHealth[eWaste]), 1, WHITE)
             screen.blit(enemyHealthText, Rect(eWasteX[eWaste] + 5, eWasteY[eWaste] + 5, 0, 0)) #e-waste health text
             eWasteX[eWaste] += eWasteSpeed[eWaste] #increase the x position of e-waste to the right by it's speed.
@@ -196,6 +211,7 @@ def enemyTier1(roundNumber):
     eWasteHealth.append(100 + 2*(roundNumber - 1)) #adding the roundNumber*2 to the health increases the difficulty factor each round, aka first round is 100 health, while 11th round is 120 health
     eWasteDamage.append(15)
     eWasteColor.append(BLUE)
+    eWastePic.append(tier1Pic)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(10)
     eWasteSpeed.append(1.5) #how many units right does this move each iteration / frame
@@ -212,6 +228,7 @@ def enemyTier2(roundNumber):
     eWasteHealth.append(125 + 3*(roundNumber - 1))
     eWasteDamage.append(30)
     eWasteColor.append(PURPLE)
+    eWastePic.append(tier2Pic)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(20)
     eWasteSpeed.append(2)
@@ -228,6 +245,7 @@ def enemyTier3(roundNumber):
     eWasteHealth.append(150 + 4*(roundNumber - 1))
     eWasteDamage.append(40)
     eWasteColor.append(RED)
+    eWastePic.append(tier3Pic)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(30)
     eWasteSpeed.append(3)
@@ -236,11 +254,8 @@ def enemyTier3(roundNumber):
 #This is the function that previews where the user wants to place the recycler, and draws it once placed. Otherwise, the user can sell the recycler.
 def recycler():
     global mx, my
-    global recyclerX
-    global placeRecycler
-    global sellRecycler
+    global recyclerX, placeRecycler, sellRecycler
     global greenCoins
-    global indexForRecyclerPlacementCheck
     
     #checks if user presses buy button and if they have enough money to purchase it.
     if 550 > mx > 450 and 650 > my > 600 and greenCoins >= 10:
@@ -276,21 +291,15 @@ def recycler():
     elif sellRecycler == True: #if the user wants to sell the recycler
         if 400 > my > 300: #middle track
             if recyclerPlacementCheck(xPosition, 325) == True:
-                recyclerStatus[indexForRecyclerPlacementCheck] = 0
-                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
-                sellRecycler = False
+                sellingRecycler()
                 
         elif 300 > my > 200: #top track
             if recyclerPlacementCheck(xPosition, 225) == True:
-                recyclerStatus[indexForRecyclerPlacementCheck] = 0
-                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
-                sellRecycler = False
+                sellingRecycler()
         
         elif 500 > my > 400: #bottom track
             if recyclerPlacementCheck(xPosition, 425) == True:
-                recyclerStatus[indexForRecyclerPlacementCheck] = 0
-                greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]
-                sellRecycler = False
+                sellingRecycler()
                 
     #draw the recyclers
     for machine in range(len(recyclerX)): #how many recyclers there are.
@@ -301,17 +310,28 @@ def recycler():
 def placingRecycler(xPosition, yLane):
     global placeRecycler
     global greenCoins
+    global status
     if recyclerPlacementCheck(xPosition, yLane) == False:
         recyclerX.append(xPosition)
         recyclerY.append(yLane)
-        recyclerDamage.append(50) #this is level 1 damage that recycler does to e-waste
+        recyclerDamage.append(50) #this is current damage that recycler does to e-waste
         recyclerStatus.append(1) #the recycler has not been sold yet.
         recyclerSellPrice.append(5) #the price that the user can sell the recycler at
         mx = 0
         my = 0
         placeRecycler = False
         greenCoins -= 10
-    else: print("error: already placed, click another spot")
+        status = "Recycler placed, 10 coin deducted."
+    else: status = "Please place your recycler in a different spot!" #tells the user to place the recycler in a different spot, as there is a recycler already there.
+
+#when called, the recycler status becomes sold, and the user is given his coins.
+def sellingRecycler():
+    global sellRecycler, indexForRecyclerPlacementCheck, recyclerStatus
+    global greenCoins
+    recyclerStatus[indexForRecyclerPlacementCheck] = 0
+    greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]  
+    sellRecycler = False
+    status = "Recycler sold, 5 coins returned."
 
 #This function checks if there is already a recycler where the user is trying to place it.
 def recyclerPlacementCheck(mx, my):
@@ -357,23 +377,36 @@ def playerHealthBar():
 #This is the button to start the round
 def startButton():
     global mx, my
-    global roundStarted
-    global roundNumber
+    global roundStarted, roundNumber, autoStart
     global generateEnemies
-    draw.rect(screen, WHITE, (0, 0, 50, 20))
-    onGoing = roundOnGoing()
+    draw.rect(screen, WHITE, (250, 600, 100, 50))
     
+    if autoStart == 1: #if the next round will automatically start, display to the user that they have enabled it.
+        playerHealthText = smallFont.render("autoStart ON", 1, BLACK)
+        screen.blit(playerHealthText, Rect(255, 615, 0, 0))  
+        
     #The logic here is that if the round is already ongoing, set roundStarted to false so that way in the next block of code the user can't start
     #... another wave of enemies before the current one has finished.
+    onGoing = roundOnGoing()
     if onGoing == False:
         roundStarted = False
+    
+    if (350 > mx > 250 and 650 > my > 600) or autoStart == 1: #if the button is clicked or the next round is set to automatically start...
+        if roundStarted == False: #... and if the round has not already started, start the round.
+            roundStarted = True
+            roundNumber += 1
+            generateEnemies = True #set this to true, so in the game loop we can generate a wave of enemies.
+            autoStart = -1 #disable autoStart
+            if 350 > mx > 250 and 650 > my > 600: #if the user actually clicked the button, set mx and my to (0,0) so the elif statement below doesn't get automatically activated
+                mx = 0
+                my = 0            
         
-    if (50 > mx > 0 and 20 > my > 0) and roundStarted == False: #check if the button is clicked and if the round has not already started
-        roundStarted = True
-        roundNumber += 1
-        generateEnemies = True #set this to true, so in the game loop we can generate a wave of enemies.
-        mx = 0
-        my = 0
+        #... and if there already is an ongoing round, let the user flip between auto-starting the next round, or not if they click again.
+        elif roundStarted == True and (350 > mx > 250 and 650 > my > 600): #Here, I make sure the user actually clicks the button by adding "and (350 > mx ..."
+            autoStart *= -1
+            #reset the mouse click back to (0, 0) so this doesn't get automatically activated again
+            mx = 0
+            my = 0
 
 #This function checks if there is an ongoing round
 def roundOnGoing(): 
@@ -413,6 +446,9 @@ titlePic = image.load("images\\title.png").convert()
 pathPic = image.load("images\\path.png").convert_alpha()
 floorPic = image.load("images\\floor.png").convert()
 recyclerPic = image.load("images\\recycling.jpg").convert()
+tier1Pic = image.load("images\\tier1.png").convert_alpha()
+tier2Pic = image.load("images\\tier2.png").convert()
+tier3Pic = image.load("images\\tier3.png").convert()
 scoreboardPic = image.load("images\\scoreboard.png").convert()
 
 #states and initializing conditions
@@ -436,6 +472,7 @@ indexForRecyclerPlacementCheck = -1
 playerHealth = 100
 greenCoins = 50 #this is the currency / coin system
 score = 0
+autoStart = -1 #if -1, next round won't automatically start. if 1, next round will.
 
 #recycler's attributes
 recyclerX = [] #number of recyclers, and their x position.
@@ -449,6 +486,7 @@ eWasteX = [] #x-position of the e-waste's
 eWasteY = [] #y-position
 eWasteHealth = [] #ewaste health
 eWasteDamage = [] #the damage the e-waste deals to player
+eWastePic = []
 eWasteColor = []
 eWasteStatus = []
 eWasteCoinDrop = []
@@ -457,6 +495,7 @@ eWasteSpeed = []
 scoreboardList = []
 
 playerName = ""
+status = ""
 
 #entire loop
 while running:
