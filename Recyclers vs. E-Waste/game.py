@@ -13,7 +13,20 @@ import random
 #unfinished
 def tutorialMenu():
     draw.rect(screen, BLACK, (0, 0, 1000, 700))
-    tutorialText = "Welcome, %s! To play this game, place a recycler on area of the lanes. If there is a recycler already there, place it somewhere else. " %playerName
+    line1 = "Welcome, %s! Our recycling plant has been experiencing an influx of electronic waste." %playerName
+    line2 = "It is your duty to recycle the electronic waste before it reaches the end."
+    line3 = "You can do this by buying a recycler and placing it on any of the lanes."
+    line4 = "If there is a recycler already there, place it somewhere else."
+    line5 = "Then, press the white button to start the round."
+    line6 = "If you want the next round to automatically start, press it midround."
+    line7 = "To turn autostart back off, press it again."
+    line8 = "If you wish to sell a recycler, press the red button."
+    line9 = "Now lets start recycling!"
+    lines = [line1, line2, line3, line4, line5, line6, line7, line8, line9]
+    for i in range(len(lines)):
+        text = smallFont.render(lines[i], 1, WHITE)
+        screen.blit(text, Rect(25, 90 + 40 * i, 0, 0))      
+    
 
 #only visible once the user dies. The user is able to see his score and other player's score, and add his score to the scoreboard.
 def scoreboardMenu():
@@ -80,11 +93,12 @@ def addToScoreboard():
 #main menu
 def mainMenu():
     global mx, my
-    global menu
-    global game
+    global menu, game, tutorial
+    global playerName
     screen.blit(menuPic, Rect(0, 0, 1000, 700))
     screen.blit(titlePic, Rect(50, 10, 900, 160))
-    draw.rect(screen, RED, (375, 350, 250, 80))
+    draw.rect(screen, RED, (375, 350, 250, 80)) #game button
+    draw.rect(screen, PURPLE, (375, 450, 250, 80)) #tutorial button
     
     #player's name textbox. the user inputs their name through userEvents()
     draw.rect(screen, WHITE, (300, 225, 400, 75)) #this box can only fit a maximum of 18 characters
@@ -92,12 +106,22 @@ def mainMenu():
     screen.blit(nameText, Rect(315, 245, 500, 500))
     
     guidingText = smallFont.render("Enter your name in the box and press start to play!", 1, BLACK)
-    screen.blit(guidingText, Rect(325, 225, 500, 500))    
+    screen.blit(guidingText, Rect(337, 225, 500, 500))    
     
-    #if the user clicks the Play Game button, start the game.
-    if 625 > mx > 375 and 430 > my > 350:
-        game = True
-        menu = False
+    #if the user enters a name, allow them to access the Play Game button and Tutorial button.
+    if len(playerName) > 0:
+        if 625 > mx > 375 and 430 > my > 350:
+            game = True
+            menu = False
+            hint.play()
+
+        elif 625 > mx > 375 and 530 > my > 450:
+            tutorial = True
+            menu = False
+            hint.play()
+    else: #tells the user to type on their keyboard. this is only visible when the user has not entered anything
+        guidingText2 = mediumFont.render("Type on your keyboard to enter a name.", 1, BLACK)
+        screen.blit(guidingText2, Rect(325, 250, 500, 500))
     
 
 def gameMenu(): #game
@@ -108,9 +132,11 @@ def gameMenu(): #game
     global scoreboard
     global score, status
     
+    #once the player loses all their health, switch over to the scoreboardMenu
     if playerHealth <= 0:
         game = False
         scoreboard = True
+        victory.play() #victory sound
         
     score = roundNumber * 10
     
@@ -160,6 +186,7 @@ def gameMenu(): #game
         generateEnemies = False #set it to false right after generating enemies, so on the next loop it doesn't generate even more.
         greenCoins += 10 #at the start of every round, give the player a 10 coin bonus.
         status = "10 coin new round bonus."
+        #maybe add sound here
     
     if roundStarted:
         enemiesMoving()
@@ -186,7 +213,8 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
             #code saying if the enemy reaches the end of the path, reduce player health
             if eWasteX[eWaste] == 990: #if the e-waste the end of the path.
                 playerHealth -= eWasteDamage[eWaste] #damages the player.
-                eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive        
+                eWasteStatus[eWaste] = 0 #0 for dead, 1 for alive
+                machineGrinding.play() #machine grinding sound
     
     #Damage protocol, used for determining colision and ewaste/player health. If ewaste reaches the end or is out of health, it gets removed from the  
     for machine in range(len(recyclerX)):
@@ -197,6 +225,7 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
                     if eWasteHealth[eWaste] <= 0: #if the health of the e-waste is dead, delete it from list
                         eWasteStatus[eWaste] = 0 #it's not alive, so change it's status to dead
                         greenCoins += eWasteCoinDrop[eWaste] #give the coins that it dropped
+                        ping.play() #ping sound
 
 def enemyTier1(roundNumber):
     global eWasteX
@@ -260,8 +289,15 @@ def recycler():
     #checks if user presses buy button and if they have enough money to purchase it.
     if 550 > mx > 450 and 650 > my > 600 and greenCoins >= 10:
         placeRecycler = True
+        sellRecycler = False #just in case the user presses sell button and then buy button without selling recycler.
+        hint.play()
+        mx = 0
+        my = 0
     elif 750 > mx > 650  and 650 > my > 600 and placeRecycler == False: #placeRecycler must be false otherwise the user deletes the recycler right after they placed it. 
         sellRecycler = True
+        hint.play()
+        mx = 0
+        my = 0
     xPosition = recyclerPositionFactor(mx) #this makes the placement of the recyclers follow a grid that's spaced by 90 pixels. Based off where the user clicks.
     xPositionHover = recyclerPositionFactor(hoverX) #this is when the user is hovering over where he wants to place it, but hasn't clicked it.
     
@@ -292,14 +328,23 @@ def recycler():
         if 400 > my > 300: #middle track
             if recyclerPlacementCheck(xPosition, 325) == True:
                 sellingRecycler()
+            else: 
+                status = "There is no recycler where you tried to click."
+                error.play()
                 
         elif 300 > my > 200: #top track
             if recyclerPlacementCheck(xPosition, 225) == True:
                 sellingRecycler()
+            else: 
+                status = "There is no recycler where you tried to click."
+                error.play()
         
         elif 500 > my > 400: #bottom track
             if recyclerPlacementCheck(xPosition, 425) == True:
                 sellingRecycler()
+            else: 
+                status = "There is no recycler where you tried to click."
+                error.play()
                 
     #draw the recyclers
     for machine in range(len(recyclerX)): #how many recyclers there are.
@@ -322,7 +367,10 @@ def placingRecycler(xPosition, yLane):
         placeRecycler = False
         greenCoins -= 10
         status = "Recycler placed, 10 coin deducted."
-    else: status = "Please place your recycler in a different spot!" #tells the user to place the recycler in a different spot, as there is a recycler already there.
+        ironClang.play()
+    else: 
+        status = "Please place your recycler in a different spot!" #tells the user to place the recycler in a different spot, as there is a recycler already there.
+        error.play()
 
 #when called, the recycler status becomes sold, and the user is given his coins.
 def sellingRecycler():
@@ -332,6 +380,7 @@ def sellingRecycler():
     greenCoins += recyclerSellPrice[indexForRecyclerPlacementCheck]  
     sellRecycler = False
     status = "Recycler sold, 5 coins returned."
+    thud.play()
 
 #This function checks if there is already a recycler where the user is trying to place it.
 def recyclerPlacementCheck(mx, my):
@@ -347,8 +396,12 @@ def recyclerPlacementCheck(mx, my):
 def userEvents():
     global mx, my
     global hoverX, hoverY
-    global playerName, scoreboardList
+    global playerName, playerHealth, roundNumber, scoreboardList
     global menu, scoreboard
+    #after every click, reset mx and my back to 0. that way the code doesn't think the user is still trying to activate a button even if they're not clicking.
+    mx = 0
+    my = 0
+    
     #if the user does not drags the window do the lines of code below
     for evnt in event.get():
         if evnt.type == MOUSEBUTTONDOWN:
@@ -366,6 +419,7 @@ def userEvents():
             playerName = "" #resets the playerName to "", otherwise when the user goes to the main menu from scoreboard menu he will see his previously typed name.
             playerHealth = 100 #reset the player health back to 100
             roundNumber = 0
+            hint.play()
 
 #This is the player's health bar that is displayed on the screen
 def playerHealthBar():
@@ -397,9 +451,10 @@ def startButton():
             roundNumber += 1
             generateEnemies = True #set this to true, so in the game loop we can generate a wave of enemies.
             autoStart = -1 #disable autoStart
-            if 350 > mx > 250 and 650 > my > 600: #if the user actually clicked the button, set mx and my to (0,0) so the elif statement below doesn't get automatically activated
+            if 350 > mx > 250 and 650 > my > 600: #if the user actually clicked the button, set mx and my to (0,0) so the elif statement below doesn't get automatically activated and play a sound
                 mx = 0
-                my = 0            
+                my = 0
+                hint.play()
         
         #... and if there already is an ongoing round, let the user flip between auto-starting the next round, or not if they click again.
         elif roundStarted == True and (350 > mx > 250 and 650 > my > 600): #Here, I make sure the user actually clicks the button by adding "and (350 > mx ..."
@@ -407,6 +462,7 @@ def startButton():
             #reset the mouse click back to (0, 0) so this doesn't get automatically activated again
             mx = 0
             my = 0
+            hint.play() #confirmation sound
 
 #This function checks if there is an ongoing round
 def roundOnGoing(): 
@@ -426,7 +482,8 @@ def recyclerPositionFactor(position):
         roundedPosition = 90 * round(roundedPosition)
         return roundedPosition
 
-os.environ['SDL_VIDEO_WINDOW_POS'] = "%d, %d" %(20, 20)   
+os.environ['SDL_VIDEO_WINDOW_POS'] = "%d, %d" %(20, 20)
+mixer.pre_init(44100, -16, 1, 512)
 init()
 SIZE = (1000, 700)
 screen = display.set_mode(SIZE)
@@ -438,6 +495,7 @@ BLUE = (0, 0, 255)
 PURPLE = (128, 0, 128)
 myClock = time.Clock()
 smallFont = font.SysFont("Arial", 18)
+mediumFont = font.SysFont("Arial", 24)
 largeFont = font.SysFont("Arial", 36)
 
 #visuals
@@ -451,10 +509,21 @@ tier2Pic = image.load("images\\tier2.png").convert()
 tier3Pic = image.load("images\\tier3.png").convert()
 scoreboardPic = image.load("images\\scoreboard.png").convert()
 
+#sounds
+machineGrinding = mixer.Sound("sounds/machineGrinding.wav") #recycler reaching end
+ironClang = mixer.Sound("sounds/ironClang.wav") #placing recycler
+ping = mixer.Sound("sounds/ping.wav") #e-waste recycled
+thud = mixer.Sound("sounds/thud.wav") #selling recycler
+victory = mixer.Sound("sounds/victory.wav") #reaching scoreboard
+error = mixer.Sound("sounds/error.wav") #when the user places a recycler where there already is one
+hint = mixer.Sound("sounds/hint.wav") #when the user presses a button
+click = mixer.Sound("sounds/click.wav")
+
 #states and initializing conditions
 running = True
-game = False #we haven't created a main menu yet, so set this to true for now.
+game = False 
 menu = True
+tutorial = False
 scoreboard = False
 started = True
 placeRecycler = False #used for placing recycler
@@ -469,7 +538,7 @@ my = 0
 hoverX = 0
 hoverY = 0
 indexForRecyclerPlacementCheck = -1
-playerHealth = 100
+playerHealth = 25
 greenCoins = 50 #this is the currency / coin system
 score = 0
 autoStart = -1 #if -1, next round won't automatically start. if 1, next round will.
@@ -501,6 +570,8 @@ status = ""
 while running:
     if menu == True:
         mainMenu()
+    elif tutorial == True:
+        tutorialMenu()
     elif game == True:
         gameMenu()
     elif scoreboard == True:
