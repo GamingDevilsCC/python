@@ -36,6 +36,7 @@ def tutorialMenu():
 #only visible once the user dies. The user is able to see his score and other player's score, and add his score to the scoreboard.
 def scoreboardMenu():
     global scoreboardList
+    global usersPlace
     numFile = open("scoreboard.dat", "r")
     if len(scoreboardList) == 0: #this way, when the game keeps calling this function, it doesn't repeat the same data into the scoreboardList.
         while True:
@@ -66,19 +67,24 @@ def scoreboardMenu():
                 row[1] = "00%s" % row[1]
             elif len(row[1]) == 2:
                 row[1] = "0%s" % row[1]
-        screen.blit(scoreboardPic, Rect(0, 0, 1000, 700))
-        draw.rect(screen, RED, (850, 20, 100, 50)) #exit button. activation of the exit button is seen in the userEvents() function
+                
+        #visuals
+        screen.blit(scoreboardPic, Rect(0, 0, 1000, 700)) #background
+        topBarText = largeFont.render("Congratulations %s, you placed at #%i!" %(playerName, usersPlace + 1), 1, WHITE) #top bar text that shows the user's rank and name.
+        screen.blit(topBarText, Rect(25, 20, 500, 500))
+        #exit button. activation of the exit button is seen in the userEvents() function
+        draw.rect(screen, RED, (850, 20, 100, 50))
+        restartText = mediumFont.render("Restart", 1, BLACK) #restart text
+        screen.blit(restartText, Rect(865, 30, 500, 500))              
         for record in range(len(scoreboardList)):
             for field in range(len(scoreboardList[record])):
                 displayText = largeFont.render(scoreboardList[record][field], 1, BLACK)
                 screen.blit(displayText, Rect(60 + field * 350, 100 + record * 60, 500, 500))
-                
-
-#to do, display only the top 10 scores.
 
 #this function finds adds the users score in the appropriate place to the scoreboardList, so it can be displayed in the scoreboardMenu function.
 def addToScoreboard():
     global scoreboardList
+    global usersPlace #only place this is used aside from this function is above, in topBarText.
     scoreAdded = False
     for player in scoreboardList:
         if score > int(player[1]): #if the player's score is bigger then the other player's score. this works as it looks through the score of the highest players first.
@@ -90,6 +96,7 @@ def addToScoreboard():
             scoreboardList = scoreboardListTemp1 + [[playerName, str(score)]] + scoreboardListTemp2
             scoreAdded = True
             break
+        else: usersPlace = len(scoreboardList) #if the user is last place
         
     #if his score is not bigger than any score, add it to the end / last.
     if scoreAdded == False:
@@ -156,7 +163,7 @@ def gameMenu(): #game
     screen.blit(pathPic, (0, 400, 1000, 100)) #bottom track
     
     #top bar
-    draw.rect(screen, BLUE, (0, 0, 1000, 90))
+    draw.rect(screen, BLUE, (0, 0, 1000, 80))
     #health
     playerHealthBar()
     #coins
@@ -215,9 +222,8 @@ def gameMenu(): #game
     
     if roundStarted:
         enemiesMoving()
-    #elif roundStarted != True: #the button is only visible when the round has not started yet
         
-    recycler()
+    recycler() #display the recyclers.
     
 #animation for the e-waste moving through the screen.
 def enemiesMoving(): #will have feature to randomly select different levels of enemies soon.
@@ -254,8 +260,8 @@ def enemiesMoving(): #will have feature to randomly select different levels of e
                     elif recyclerTier[machine] == 2: #if it's a tier 2 recycler...
                         eWasteX[eWaste] -= 50*(eWasteSpeed[eWaste]) #repel the e-waste back by 20 times it's move speed
                         recyclerHealth[machine] -= eWasteDamage[eWaste] #the recycler loses health
-                        if recyclerHealth[machine] <= 0: #and if the recycler lost all it's health, it is no longer a real entity.
-                            recyclerStatus[machine] = 0
+                        if recyclerHealth[machine] <= 0: #and if the recycler lost all it's health... 
+                            recyclerStatus[machine] = 0 #... it is no longer a real entity.
 
 def enemyTier1(roundNumber):
     global eWasteX
@@ -267,13 +273,13 @@ def enemyTier1(roundNumber):
     #below are some attributes of the e-waste
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425])) #randomly chooses which lane the e-waste goes through
-    eWasteHealth.append(100 + 2*(roundNumber - 1)) #adding the roundNumber*2 to the health increases the difficulty factor each round, aka first round is 100 health, while 11th round is 120 health
+    eWasteHealth.append(100 + 5*(roundNumber - 1)) #adding the roundNumber*5 to the health increases the difficulty factor each round, aka first round is 100 health, while 11th round is 120 health
     eWasteDamage.append(15)
     eWasteColor.append(BLUE)
     eWastePic.append(tier1Pic)
     eWasteStatus.append(1)
     eWasteCoinDrop.append(10)
-    eWasteSpeed.append(1.5) #how many units right does this move each iteration / frame
+    eWasteSpeed.append(2) #how many units right does this move each iteration / frame
 
 def enemyTier2(roundNumber):
     global eWasteX
@@ -284,7 +290,7 @@ def enemyTier2(roundNumber):
     
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425]))
-    eWasteHealth.append(125 + 3*(roundNumber - 1))
+    eWasteHealth.append(125 + 10*(roundNumber - 1)) #base health + 10 times the roundNumber
     eWasteDamage.append(30)
     eWasteColor.append(PURPLE)
     eWastePic.append(tier2Pic)
@@ -301,7 +307,7 @@ def enemyTier3(roundNumber):
     
     eWasteX.append(0)
     eWasteY.append(random.choice([225, 325, 425]))
-    eWasteHealth.append(150 + 4*(roundNumber - 1))
+    eWasteHealth.append(150 + 10*(roundNumber - 1))
     eWasteDamage.append(40)
     eWasteColor.append(RED)
     eWastePic.append(tier3Pic)
@@ -326,13 +332,26 @@ def recycler():
     elif 350 > mx > 250 and 650 > my > 600 and greenCoins >= 50 and placeRecyclerTier2 == False:
         placeRecyclerTier2 = True
         sellRecycler = False #just in case the user presses sell button and then buy button without selling recycler.
-        hint.play()        
-    elif 750 > mx > 650  and 650 > my > 600 and placeRecyclerTier1 == False and placeRecyclerTier2 == False: #placeRecyclerTierX must be false otherwise the user deletes the recycler right after they placed it. 
+        hint.play()
+    elif 750 > mx > 650 and 650 > my > 600 and placeRecyclerTier1 == False and placeRecyclerTier2 == False: #placeRecyclerTierX must be false otherwise the user deletes the recycler right after they placed it. 
         sellRecycler = True
         hint.play()
 
     xPosition = recyclerPositionFactor(mx) #this makes the placement of the recyclers follow a grid that's spaced by 90 pixels. Based off where the user clicks.
     xPositionHover = recyclerPositionFactor(hoverX) #this is when the user is hovering over where he wants to place it, but hasn't clicked it.
+    
+    #if the user wants to change his mind and cancel their action, let them do so.
+    if placeRecyclerTier1 == True or placeRecyclerTier2 == True or sellRecycler == True:
+        #drawing the button
+        draw.rect(screen, BLACK, (850, 600, 100, 50))
+        tier2GuideText = smallFont.render("Cancel", 1, WHITE)
+        screen.blit(tier2GuideText, Rect(865, 615, 0, 0))
+        #canceling the action
+        if 950 > mx > 850  and 650 > my > 600:
+            placeRecyclerTier1 = False
+            placeRecyclerTier2 = False
+            sellRecycler = False
+            hint.play()
     
     if placeRecyclerTier1 == True: #if the user wants to buy a tier 1 recycler
         #place it in the lane the user wants it to be in, following the invisible grid.
@@ -408,6 +427,7 @@ def recycler():
             screen.blit(recyclerPic[machine], Rect(recyclerX[machine], recyclerY[machine], 50, 50))
             if recyclerTier[machine] == 2:
                 recyclerHealthText = smallFont.render(str(recyclerHealth[machine]), 1, BLACK)
+                draw.rect(screen, WHITE, (recyclerX[machine], recyclerY[machine] + 5, 35, 20))
                 screen.blit(recyclerHealthText, Rect(recyclerX[machine] + 5, recyclerY[machine] + 5, 0, 0)) #tier 2 recycler health text                
             
 #this function places the recyclers onto the map if there isn't one already placed in the desired location
@@ -460,7 +480,7 @@ def recyclerPlacementCheck(mx, my):
             alreadyPlaced = True
     return alreadyPlaced
 
-#We use this as a seperate function to clear up code.
+#This function is what captures the users input.
 def userEvents():
     global mx, my
     global hoverX, hoverY
@@ -482,14 +502,14 @@ def userEvents():
             if key.name(evnt.key) == "backspace": #if user hits backspace, delete last key
                     playerName = playerName[:-1]
             elif len(playerName) < 18 and key.name(evnt.key) != "return": playerName += evnt.unicode #maximum 18 characters can be fit on the textbox, so don't let them add more than 18.
+        #if the user presses the exit button from the scoreboard
         elif scoreboard == True and 950 > mx > 850 and 70 > my > 20:
             menu = True
             scoreboard = False
-            scoreboardList = [] #reset the scoreboardList's length to 0. Otherwise, when scoreboardMenu() is called, if won't display a scoreboard as it's dependant on it's length being 0.
-            playerName = "" #resets the playerName to "", otherwise when the user goes to the main menu from scoreboard menu he will see his previously typed name.
-            playerHealth = 100 #reset the player health back to 100
+            resetVariables()
             roundNumber = 0
-            hint.play()
+            hint.play() #button activation sound
+            theme.play() #plays main menu theme for when the user returns to main menu
         elif tutorial == True and 975 > mx > 875 and 90 > my > 40:
             tutorial = False
             menu = True
@@ -542,7 +562,7 @@ def roundOnGoing():
             onGoing = True
     return onGoing
 
-#checks if the position is a factor of 90 to prevent e-waste with a faster movement speed from skipping over it (as 90 has a factor of 1.5, 2 and 3, the movespeed for tier 1, 2, and 3 e-waste).
+#checks if the position is a factor of 90 to prevent e-waste with a faster movement speed from skipping over it (as 90 has a factor of 2 and 3, the movespeed for tier 1, 2, and 3 e-waste).
 def recyclerPositionFactor(position): 
     #this makes it so the farthest the user can place one is 900 pixels, preventing it from clipping off screen while still being a factor of 90.
     if position >= 900:
@@ -550,10 +570,48 @@ def recyclerPositionFactor(position):
     #prevents the user from placing it at the very left of the screen
     elif position <= 90:
         position = 90
-    else: #if it's not a factor of 90
+    else: #makes it a factor of 90, and makes it follow a grid system spaced by 90 pixels.
         position = position / 90 
         position = 90 * round(position)
     return position
+
+#this function makes the game fresh for when the user wants to play again. only seen when the user presses the leave button in scoreboardMenu()
+def resetVariables():
+    global playerHealth, playerName, greenCoins, score, roundNumber, autoStart, status
+    global recyclerX, recyclerPic, recyclerHealth, recyclerDamage, recyclerStatus, recyclerTier, recyclerSellPrice
+    global eWasteX, eWasteY, eWasteHealth, eWasteDamage, eWastePic, eWasteColor, eWasteStatus, eWasteCoinDrop, eWasteSpeed
+    global scoreboardList
+    greenCoins = 50 #this is the currency / coin system
+    score = 0
+    roundNumber = 0
+    autoStart = -1 #if -1, next round won't automatically start. if 1, next round will.
+    playerName = "" #resets the playerName to "", otherwise when the user goes to the main menu from scoreboard menu he will see his previously typed name.
+    playerHealth = 100 #reset the player health back to 100
+    status = "To start a round, click the bottom white button."
+    
+    #recycler's attributes
+    recyclerX = [] #number of recyclers, and their x position.
+    recyclerY = []
+    recyclerPic = [] #the picture to be used for recycler
+    recyclerHealth = [] #really only needed for tier 2 recycler
+    recyclerDamage = [] #how much damage each recycler does to the health of the eWaste
+    recyclerStatus = [] #0 if sold, 1 if not sold.
+    recyclerTier = [] #tier 1 does not block the e-waste, tier 2 repels / blocks the e-waste but has a health / is disposable
+    recyclerSellPrice = []
+    
+    #e-waste's attributes
+    eWasteX = [] #x-position of the e-waste's
+    eWasteY = [] #y-position
+    eWasteHealth = [] #ewaste health
+    eWasteDamage = [] #the damage the e-waste deals to player
+    eWastePic = []
+    eWasteColor = []
+    eWasteStatus = []
+    eWasteCoinDrop = []
+    eWasteSpeed = []
+    
+    scoreboardList = [] #reset the scoreboardList's length to 0. Otherwise, when scoreboardMenu() is called, if won't display a scoreboard as it's dependant on it's length being 0.
+    
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d, %d" %(20, 20)
 mixer.pre_init(44100, -16, 1, 512)
@@ -594,6 +652,7 @@ victory = mixer.Sound("sounds/victory.wav") #reaching scoreboard
 error = mixer.Sound("sounds/error.wav") #when the user places a recycler where there already is one
 hint = mixer.Sound("sounds/hint.wav") #when the user presses a button
 click = mixer.Sound("sounds/click.wav")
+theme = mixer.Sound("sounds/theme.wav")
 
 #states and initializing conditions
 running = True
@@ -608,6 +667,7 @@ sellRecycler = False
 roundStarted = False #if a round / wave / match is started.
 generateEnemies = False
 roundNumber = 0
+usersPlace = 0
 
 #global mouse x and y position
 mx = 0
@@ -644,7 +704,9 @@ eWasteSpeed = []
 scoreboardList = []
 
 playerName = ""
-status = ""
+status = "To start a round, click the bottom white button."
+
+theme.play() #plays the theme for when the player launches the game
 
 #entire loop
 while running:
@@ -661,3 +723,7 @@ while running:
     myClock.tick(60)
     display.flip()
 quit()
+
+#added resetVariables function so that when the user goes back to mainMenu from scoreboardMenu, the game is started fresh.
+#add a text that appears at the top of the screen, so that shows the score you got and your placement.
+#allowed the user to click on the buttons again to disable.
